@@ -11,7 +11,8 @@
 - Run using command: `./virtualenv/bin/python simulate.py`
 
 ## Description
-After running the code the input and output will be dumped in the project directory. 
-input.json: This file would contain second-wise data for simulated sensor.
-output.csv: This file would contain stats for every 15-min derived from the input data
-hourly_stats.csv: This file would contain stats for every hour derived from the output.csv i.e. 15-min stats data
+After running the code the input and output will be dumped in the project directory. A sample of which is already provided in the project. The files will be as follows:
+
+- input.json: This file would contain second-wise data for simulated sensor.
+- output.csv: This file would contain stats for every 15-min derived from the input data
+- hourly_stats.csv: This file would contain stats for every hour derived from the output.csv i.e. 15-min stats data
