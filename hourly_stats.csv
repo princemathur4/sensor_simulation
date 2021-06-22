@@ -1,0 +1,3 @@
+user_id,seg_start,seg_end,avg_hr,max_hr,min_hr,avg_rr,max_rr,min_rr,avg_activity,max_activity,min_activity
+1,1624395600,1624399199,104.32,179,30,23.34,39,8,49.59,99,0
+1,1624399200,1624402799,104.59,179,30,23.35,39,8,49.17,99,0

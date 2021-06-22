@@ -9,12 +9,12 @@ class Simulator:
         self.df = pd.DataFrame(
             columns=["user_id", "timestamp", "heart_rate", "respiration_rate", "activity"]
         ).astype(int)
-        self.res_df = pd.DataFrame(
-            columns=[
-                "user_id", "seg_start", "seg_end",
-                "avg_hr", "max_hr", "min_hr", "avg_rr", "max_rr", "min_rr", "avg_activity",
-                "max_activity", "min_activity"
-            ]
+        self.stats_df_columns = [
+            "user_id", "seg_start", "seg_end", "avg_hr", "max_hr", "min_hr", "avg_rr", "max_rr", "min_rr",
+            "avg_activity", "max_activity", "min_activity"
+        ]
+        self.output_df = self.hourly_res_df = pd.DataFrame(
+            columns=self.stats_df_columns
         )
         self.type_conv_mapping = {
             "user_id": int, "seg_start": int, "seg_end": int,
@@ -59,27 +59,14 @@ class Simulator:
                 max_activity=last_15_mins_df["activity"].max(),
                 min_activity=last_15_mins_df["activity"].min(),
             )
-            # display(self.df)
-            self.res_df = self.res_df.append(new_res_row, ignore_index=True)
+            self.output_df = self.output_df.append(new_res_row, ignore_index=True)
 
-    @staticmethod
-    def process_for_hourly(segment_df: pd.DataFrame):
+    def process_for_hourly(self, segment_df: pd.DataFrame):
         """
         (For Optional functionality)
         Processes 15 min dataframe and returns hourly data
         :param segment_df: pd.DataFrame - will contain avg, min, max sensor data for every 15 mins
-        :return: pd.DataFrame - will contain avg, min, max sensor data for every hour
         """
-        hourly_res_df = pd.DataFrame(
-            columns=[
-                "user_id", "seg_start", "seg_end", "avg_hr", "max_hr", "min_hr", "avg_rr", "max_rr", "min_rr", "avg_activity",
-                "max_activity", "min_activity"
-            ]
-        ).astype({
-            "user_id": int, "seg_start": int, "seg_end": int,
-            "max_hr": int, "min_hr": int, "max_rr": int, "min_rr": int,
-            "max_activity": int, "min_activity": int
-        })
         i = 0
         while i < len(segment_df):
             last_hour_df = segment_df.iloc[i:60//15+i].reset_index(drop=True)
@@ -97,9 +84,8 @@ class Simulator:
                 max_activity=last_hour_df["max_activity"].max(),
                 min_activity=last_hour_df["min_activity"].min(),
             )
-            hourly_res_df = hourly_res_df.append(new_res_row, ignore_index=True)
+            self.hourly_res_df = self.hourly_res_df.append(new_res_row, ignore_index=True)
             i += 60//15
-        return hourly_res_df
 
     @staticmethod
     def round_decimal_points(df: pd.DataFrame):
@@ -113,33 +99,37 @@ class Simulator:
                 df[col] = df[col].round(2)
         return df
 
-    def run_simulation(self):
+    def run_simulation(self, duration):
         """
         Main function to run the simulation
+        :param duration: int - duration to run the simulation for (in seconds)
         """
-        initial_time = int(datetime.now().replace(tzinfo=timezone.utc).timestamp())
-        # running simulation for 2 hours
-        for i in range(2 * 60 * 60):
+        # set initial time as the start of the utc hour
+        initial_time = datetime.now(tz=timezone.utc)
+        initial_time = int(initial_time.replace(tzinfo=timezone.utc, minute=0, second=0, microsecond=0).timestamp())
+
+        # running simulation
+        for i in range(duration):
             data = self.get_sensor_data(initial_time + i)
             self.process_data(data)
 
         # Optional task
-        hourly_res_df = self.process_for_hourly(self.res_df)
+        self.process_for_hourly(self.output_df)
 
         # Post Processing
-        self.res_df = self.res_df.astype(self.type_conv_mapping)
-        self.res_df = self.round_decimal_points(self.res_df)
+        self.output_df = self.output_df.astype(self.type_conv_mapping)
+        self.output_df = self.round_decimal_points(self.output_df)
 
-        hourly_res_df = hourly_res_df.astype(self.type_conv_mapping)
-        hourly_res_df = self.round_decimal_points(hourly_res_df)
+        self.hourly_res_df = self.hourly_res_df.astype(self.type_conv_mapping)
+        self.hourly_res_df = self.round_decimal_points(self.hourly_res_df)
 
         # Saving data locally
-        with open("second_wise_sensor_data.json", "w") as jf:
+        with open("input.json", "w") as jf:
             json.dump(self.df.to_dict(orient="records"), jf, indent=2)
 
-        self.res_df.to_csv("15_min_stats.csv", index=False)
-        hourly_res_df.to_csv("hourly_stats.csv", index=False)
+        self.output_df.to_csv("output.csv", index=False)
+        self.hourly_res_df.to_csv("hourly_stats.csv", index=False)
 
 
 if __name__ == "__main__":
-    Simulator().run_simulation()
+    Simulator().run_simulation(duration=2*60*60)
